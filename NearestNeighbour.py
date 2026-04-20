@@ -62,3 +62,21 @@ elif NRvalue == 1:
 else:
     print("Bus stations in Northern Ireland have a significantly regular distribution")
 
+dg = pd.read_csv('postcodes.csv')
+
+#create a dataframe for postcode
+postcodes = gpd.GeoDataFrame(dg[['pcds']],
+                            geometry=gpd.points_from_xy(dg['long'], dg['lat']), # set the geometry using points_from_xy
+                            crs='epsg:4326') # set the CRS using a text representation of the EPSG code for WGS84 lat/lon
+
+postcodes = postcodes.to_crs(epsg=2157) #convert to same projection
+
+
+print("Provide your postcode to find your closest bus station")
+postcode = input()
+
+print(postcodes.head())
+
+if postcodes.any(postcode):
+    print("Please provide a valid postcode")
+
