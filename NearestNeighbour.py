@@ -73,10 +73,38 @@ postcodes = postcodes.to_crs(epsg=2157) #convert to same projection
 
 
 print("Provide your postcode to find your closest bus station")
-postcode = input()
+postcode = str(input()).upper()
 
-print(postcodes.head())
 
-if postcodes.any(postcode):
-    print("Please provide a valid postcode")
+#if postcode not valid then ask for another postcode
+while postcode not in postcodes['pcds'].values:
+    print("Please provide a valid postcode - it should be in the form BT* *** eg BT34 6HE")
+    postcode = str(input()).upper() #removes need to capitalize each letter
+
+#create new geodatabase with closest station to each postcode
+nearest_station = postcodes.sjoin_nearest(stations, distance_col= 'Distance to nearest station')
+
+#creates function to find name of closest station
+def nearest(inputPostcode):
+    rowID = nearest_station.loc[nearest_station['pcds'] == inputPostcode].index #finds row of input postcode
+    return nearest_station['CommonName'].values[rowID][0] #returns the name of station in that row
+
+pd.set_option('display.max_columns', None)
+print(nearest_station.head())
+print(f"Your nearest bus stop is: {nearest(postcode)}.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
