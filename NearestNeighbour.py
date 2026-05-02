@@ -5,6 +5,7 @@ from argon2 import Parameters
 from parso.python.tree import ReturnStmt
 from shapely.geometry import Point
 from shapely.ops import nearest_points
+import math
 
 
 #input the bus station data downloaded in a csv file
@@ -27,29 +28,22 @@ stations = stations.to_crs(epsg=2157)
 #add new column to pgeodataframe into which will be placed the nearest neighbour point
 stations.insert(3, 'NearestNeighbour', None)
 
+#iterative process to find the nearest bus station for each of the bus stations in the geodataframe
 for index,row in stations.iterrows():
-    point = row.geometry
-    multipoint = stations.drop(index, axis=0).geometry.union_all()
-    queried_geom, nearest_geo = nearest_points(point, multipoint)
-    stations.loc[index, 'NearestNeighbour'] = nearest_geo
-
-#add new column to table
-stations.insert(4,'Distance', value=None)
+    point = row.geometry #finds the location of each bus station
+    multipoint = stations.drop(index, axis=0).geometry.union_all() #creates a list of all other bus station locations except the bus station being considered
+    queried_geom, nearest_geo = nearest_points(point, multipoint) #uses nearest_points to find the closest bus station in list
+    stations.loc[index, 'NearestNeighbour'] = nearest_geo #adds the location of nearest bus tation to the nearest neighbour column
 
 
 #calculate the distance between each bus station and its nearest neighbour and add into Distance column
 for index,row in stations.iterrows():
-    row['Distance'] = row['geometry'].distance(row['NearestNeighbour'])/1000
+    row['Distance'] = row['geometry'].distance(row['NearestNeighbour'])/1000 #calculates distance in new column and divides by 1000 to get the distance in kilometres
     stations.loc[index,'Distance'] = row['Distance']
 
 #calculate average distance between each bus station and nearest neighbour
 average_distance = (stations['Distance'].sum())/stations['Distance'].count()
 
-print(average_distance)
-stationsMultiPoint = stations.geometry.union_all()
-area = stationsMultiPoint.convex_hull.area/1000000
-
-print(f"The area is: {area}")
 
 #calculate nearest neighbour value using NI area value
 NRvalue = 2*average_distance*math.sqrt(stations['ID'].count()/14330)
@@ -117,10 +111,8 @@ while postcode != 'EXIT':
     print(f"This bus stop is approximately {nearest(postcode)[1]:.0f} metres away from this postcode.")
     print("--------------------------------------")
     print("Provide another postcode to find the closest bus station")
-    postcode = str(input()).upper()
+    postcode = str(input()).upper() #allows for multiple attempts at postcode bus station finder
 
-
-#pd.set_option('display.max_columns', None)
 
 
 
