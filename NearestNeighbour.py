@@ -22,8 +22,6 @@ ni_boundary = ni_boundary.to_crs(epsg=4326) #reprojected to lat/long
 
 stations = gpd.clip(stations, ni_boundary) #removal of stations not in NI
 
-m = stations.explore()
-m.save('map.html')
 
 #add new blank column to table called ID
 stations.insert(0,'ID', value=None)
@@ -38,40 +36,64 @@ for index,row in stations.iterrows():
 stations = stations.to_crs(epsg=2157)
 
 
-
 #add new column to pgeodataframe into which will be placed the nearest neighbour point
 stations.insert(3, 'NearestNeighbour', None)
-#
-# #iterative process to find the nearest bus station for each of the bus stations in the geodataframe
-# for index,row in stations.iterrows():
-#     point = row.geometry #finds the location of each bus station
-#     multipoint = stations.drop(index, axis=0).geometry.union_all() #creates a list of all other bus station locations except the bus station being considered
-#     queried_geom, nearest_geo = nearest_points(point, multipoint) #uses nearest_points to find the closest bus station in list
-#     stations.loc[index, 'NearestNeighbour'] = nearest_geo #adds the location of nearest bus tation to the nearest neighbour column
-#
-#
-# #calculate the distance between each bus station and its nearest neighbour and add into Distance column
-# for index,row in stations.iterrows():
-#     row['Distance'] = row['geometry'].distance(row['NearestNeighbour'])/1000 #calculates distance in new column and divides by 1000 to get the distance in kilometres
-#     stations.loc[index,'Distance'] = row['Distance']
-#
-# #calculate average distance between each bus station and nearest neighbour
-# average_distance = (stations['Distance'].sum())/stations['Distance'].count()
-#
-#
-# #calculate nearest neighbour value using NI area value
-# NRvalue = 2*average_distance*math.sqrt(stations['ID'].count()/14330)
-#
-# #printing the value of NN
-# print(f"The nearest neighbour value is {NRvalue:.3f}")
-#
-# #using value to assign a type of distribution
-# if NRvalue < 1:
-#     print("Bus stations in Northern Ireland have a  significantly clustered distribution")
-# elif NRvalue == 1:
-#     print("Bus stations in Northern Ireland have a significantly random distribution")
-# else:
-#     print("Bus stations in Northern Ireland have a significantly regular distribution")
+
+#iterative process to find the nearest bus station for each of the bus stations in the geodataframe
+for index,row in stations.iterrows():
+    point = row.geometry #finds the location of each bus station
+    multipoint = stations.drop(index, axis=0).geometry.union_all() #creates a list of all other bus station locations except the bus station being considered
+    queried_geom, nearest_geo = nearest_points(point, multipoint) #uses nearest_points to find the closest bus station in list
+    stations.loc[index, 'NearestNeighbour'] = nearest_geo #adds the location of nearest bus tation to the nearest neighbour column
+
+
+#calculate the distance between each bus station and its nearest neighbour and add into Distance column
+for index,row in stations.iterrows():
+    row['Distance'] = row['geometry'].distance(row['NearestNeighbour'])/1000 #calculates distance in new column and divides by 1000 to get the distance in kilometres
+    stations.loc[index,'Distance'] = row['Distance']
+
+def NNA(stations):
+    #calculate average distance between each bus station and nearest neighbour
+    average_distance = (stations['Distance'].sum())/stations['Distance'].count()
+
+    #calculate the area of the study using the convexhull function
+    Area_boundary = stations.geometry.union_all().convex_hull
+    area_study = Area_boundary.area/1000000
+
+
+    #calculate nearest neighbour value using NI area value
+    NRvalue = 2*average_distance*math.sqrt(stations['ID'].count()/area_study)
+
+    #printing the value of NN
+    print(f"The nearest neighbour value is {NRvalue:.3f}")
+
+    #using value to assign a type of distribution
+    if NRvalue < 1:
+        print("Bus stations have a significantly clustered distribution")
+    elif NRvalue == 1:
+        print("Bus stations have a significantly random distribution")
+    else:
+        print("Bus stations have a significantly regular distribution")
+
+Print("NORTHERN IRELAND")
+NNA(stations)
+
+counties = gpd.read_file('osni_counties_largescale.shp')
+counties = counties.to_crs(epsg=2157)
+
+unique_counties = sorted(counties['NAME'].unique())
+
+for county in unique_counties:
+    county_geom = counties[counties['NAME'] == county].geometry
+    stations_clipped = gpd.clip(stations, county_geom)
+    print(str(county))
+    NNA(stations_clipped)
+
+
+
+
+
+print("--------------------------------------")
 
 #input the post code data downloaded in a csv file
 dg = pd.read_csv('postcodes.csv')
@@ -110,6 +132,7 @@ def nearest(inputPostcode):
 
 
 #interactive text which includes option for exiting the program
+print("NEAREST BUS STOP FINDER")
 print("Please type exit to exit this program.")
 print("--------------------------------------")
 print("Provide a postcode to find the closest bus station:")
