@@ -15,6 +15,10 @@ stations = gpd.GeoDataFrame(df[['CommonName']],
                             geometry=gpd.points_from_xy(df['Longitude'], df['Latitude']), # set the geometry using points_from_xy
                             crs='epsg:4326') # set the CRS using a text representation of the EPSG code for WGS84 lat/lon
 
+#creates map to show bus stops outside NI
+m = stations.explore()
+m.save("map1.html")
+
 ni_boundary = gpd.read_file('OSNI_Open_Data_-_50K_Boundaries_-_NI_Outline.shp') #NI boundary shapefile
 ni_boundary = ni_boundary.to_crs(epsg=4326) #reprojected to lat/long
 
