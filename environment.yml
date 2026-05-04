@@ -5,8 +5,7 @@ channels:
 dependencies:
   - python=3.9
   - geopandas
-  - cartopy
-  - notebook
-  - rasterio
-  - pyepsg
   - folium
+  - pandas
+  - parso
+  - shapely

@@ -1,7 +1,5 @@
-
 import geopandas as gpd
 import pandas as pd
-from argon2 import Parameters
 from parso.python.tree import ReturnStmt
 from shapely.geometry import Point
 from shapely.ops import nearest_points
@@ -22,21 +20,19 @@ ni_boundary = ni_boundary.to_crs(epsg=4326) #reprojected to lat/long
 
 stations = gpd.clip(stations, ni_boundary) #removal of stations not in NI
 
-
 #add new blank column to table called ID
+# noinspection PyTypeChecker
 stations.insert(0,'ID', value=None)
 
 #assign index value to the ID column for use in identifying rows
 for index,row in stations.iterrows():
     stations.loc[index,'ID'] = index
 
-
-
 #reproject the geodataframe to allow distance calculation- converted to Irish Tranverse Mercator
 stations = stations.to_crs(epsg=2157)
 
-
 #add new column to pgeodataframe into which will be placed the nearest neighbour point
+# noinspection PyTypeChecker
 stations.insert(3, 'NearestNeighbour', None)
 
 #iterative process to find the nearest bus station for each of the bus stations in the geodataframe
@@ -46,13 +42,23 @@ for index,row in stations.iterrows():
     queried_geom, nearest_geo = nearest_points(point, multipoint) #uses nearest_points to find the closest bus station in list
     stations.loc[index, 'NearestNeighbour'] = nearest_geo #adds the location of nearest bus tation to the nearest neighbour column
 
-
 #calculate the distance between each bus station and its nearest neighbour and add into Distance column
 for index,row in stations.iterrows():
     row['Distance'] = row['geometry'].distance(row['NearestNeighbour'])/1000 #calculates distance in new column and divides by 1000 to get the distance in kilometres
     stations.loc[index,'Distance'] = row['Distance']
 
 def NNA(stations):
+    """
+        Nearest Neighbour Analysis calculates and prints the nearest neighbour value and distribution type.
+        Parameters
+        ----------
+        stations: GeoDataFrame
+            the geodataframe containing the bus stations to be analysed
+
+        Returns
+        -------
+        Nothing, it prints out the resulting distribution type.
+        """
     #calculate average distance between each bus station and nearest neighbour
     average_distance = (stations['Distance'].sum())/stations['Distance'].count()
 
@@ -63,6 +69,9 @@ def NNA(stations):
 
     #calculate nearest neighbour value using NI area value
     NRvalue = 2*average_distance*math.sqrt(stations['ID'].count()/area_study)
+
+    number = stations['ID'].count()
+    print(f"There are {number} bus stations.")
 
     #printing the value of NN
     print(f"The nearest neighbour value is {NRvalue:.3f}")
@@ -75,23 +84,22 @@ def NNA(stations):
     else:
         print("Bus stations have a significantly regular distribution")
 
-Print("NORTHERN IRELAND")
+print("NORTHERN IRELAND")
 NNA(stations)
 
+#import the county outlines file and reproject
 counties = gpd.read_file('osni_counties_largescale.shp')
 counties = counties.to_crs(epsg=2157)
 
+#creates list of the 6 counties
 unique_counties = sorted(counties['NAME'].unique())
 
+#iterates over each of the 6 counties
 for county in unique_counties:
-    county_geom = counties[counties['NAME'] == county].geometry
-    stations_clipped = gpd.clip(stations, county_geom)
+    county_geom = counties[counties['NAME'] == county].geometry #identifies polygon for county
+    stations_clipped = gpd.clip(stations, county_geom) #clips stations geodataframe to the county
     print(str(county))
     NNA(stations_clipped)
-
-
-
-
 
 print("--------------------------------------")
 
@@ -130,15 +138,12 @@ def nearest(inputPostcode):
     distance = nearest_station['Distance to nearest station'][rowID].values[0] #finds the value in the distance column of the row
     return  [name,distance]
 
-
 #interactive text which includes option for exiting the program
 print("NEAREST BUS STOP FINDER")
 print("Please type exit to exit this program.")
 print("--------------------------------------")
 print("Provide a postcode to find the closest bus station:")
 postcode = str(input()).upper() #will capitalise letters of the postcode if entered in lower case
-
-
 
 while postcode != 'EXIT':
     while postcode not in postcodes['pcds'].values: #if postcode not found in geodataframe then ask for another postcode
@@ -149,10 +154,3 @@ while postcode != 'EXIT':
     print("--------------------------------------")
     print("Provide another postcode to find the closest bus station")
     postcode = str(input()).upper() #allows for multiple attempts at postcode bus station finder
-
-
-
-
-
-
-
