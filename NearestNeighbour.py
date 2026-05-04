@@ -1,6 +1,5 @@
 import geopandas as gpd
 import pandas as pd
-from parso.python.tree import ReturnStmt
 from shapely.geometry import Point
 from shapely.ops import nearest_points
 import math
@@ -19,13 +18,12 @@ stations = gpd.GeoDataFrame(df[['CommonName']],
 m = stations.explore()
 m.save("map1.html")
 
-ni_boundary = gpd.read_file('OSNI_Open_Data_-_50K_Boundaries_-_NI_Outline.shp') #NI boundary shapefile
+ni_boundary = gpd.read_file('datasets/OSNI_Open_Data_-_50K_Boundaries_-_NI_Outline.shp') #NI boundary shapefile
 ni_boundary = ni_boundary.to_crs(epsg=4326) #reprojected to lat/long
 
 stations = gpd.clip(stations, ni_boundary) #removal of stations not in NI
 
 #add new blank column to table called ID
-# noinspection PyTypeChecker
 stations.insert(0,'ID', value=None)
 
 #assign index value to the ID column for use in identifying rows
@@ -36,7 +34,6 @@ for index,row in stations.iterrows():
 stations = stations.to_crs(epsg=2157)
 
 #add new column to pgeodataframe into which will be placed the nearest neighbour point
-# noinspection PyTypeChecker
 stations.insert(3, 'NearestNeighbour', None)
 
 #iterative process to find the nearest bus station for each of the bus stations in the geodataframe
@@ -92,7 +89,7 @@ print("NORTHERN IRELAND")
 NNA(stations)
 
 #import the county outlines file and reproject
-counties = gpd.read_file('osni_counties_largescale.shp')
+counties = gpd.read_file('datasets/osni_counties_largescale.shp')
 counties = counties.to_crs(epsg=2157)
 
 #creates list of the 6 counties
